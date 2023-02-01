@@ -3,29 +3,16 @@ package de.greenman999;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.Environment;
-import net.fabricmc.api.ModInitializer;
-
-
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.LecternBlock;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.command.argument.RegistryEntryArgumentType;
+import net.minecraft.command.argument.EnchantmentArgumentType;
+import net.minecraft.command.argument.RegistryKeyArgumentType;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.ItemEntity;
 import net.minecraft.entity.passive.VillagerEntity;
-import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket;
-import net.minecraft.registry.Registries;
-import net.minecraft.registry.RegistryKeys;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
 import net.minecraft.util.Formatting;
@@ -33,11 +20,13 @@ import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.registry.Registry;
 import net.minecraft.village.VillagerProfession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.*;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 @Environment(net.fabricmc.api.EnvType.CLIENT)
 public class LibrarianTradeFinder implements ClientModInitializer {
@@ -67,8 +56,8 @@ public class LibrarianTradeFinder implements ClientModInitializer {
 
 							for(Entity entity : MinecraftClient.getInstance().world.getEntities()) {
 								Vec3d entityPos = entity.getPos();
-								if(entity instanceof VillagerEntity && ((VillagerEntity)entity).getVillagerData().getProfession().equals(VillagerProfession.LIBRARIAN) && entityPos.distanceTo(blockPos.toCenterPos()) < closestDistance) {
-									closestDistance = entityPos.distanceTo(blockPos.toCenterPos());
+								if(entity instanceof VillagerEntity && ((VillagerEntity)entity).getVillagerData().getProfession().equals(VillagerProfession.LIBRARIAN) && entityPos.distanceTo(Vec3d.ofCenter(blockPos)) < closestDistance) {
+									closestDistance = entityPos.distanceTo(Vec3d.ofCenter(blockPos));
 									closestEntity = entity;
 								}
 							}
@@ -84,9 +73,8 @@ public class LibrarianTradeFinder implements ClientModInitializer {
 							return 1;
 						}))
 						.then(literal("search")
-								.then(argument("enchantment", RegistryEntryArgumentType.registryEntry(registryAccess, RegistryKeys.ENCHANTMENT)).executes(context -> {
-													RegistryEntry<Enchantment> enchantmentRegistryEntry = context.getArgument("enchantment", RegistryEntry.class);
-													Enchantment enchantment = enchantmentRegistryEntry.value();
+								.then(argument("enchantment", EnchantmentArgumentType.enchantment()).executes(context -> {
+													Enchantment enchantment = context.getArgument("enchantment", Enchantment.class);
 
 													if(TradeFinder.villager == null || TradeFinder.lecternPos == null) {
 														context.getSource().sendFeedback(Text.literal("You have not selected a librarian and lectern. Use '/tradefinder select' to select the lectern and librarian.").styled(style -> style.withColor(TextColor.fromFormatting(Formatting.RED))));
@@ -98,8 +86,7 @@ public class LibrarianTradeFinder implements ClientModInitializer {
 												})
 												.then(argument("maxPrice", IntegerArgumentType.integer(1, 64)).executes(context -> {
 													int bookPrice = IntegerArgumentType.getInteger(context, "maxPrice");
-													RegistryEntry<Enchantment> enchantmentRegistryEntry = context.getArgument("enchantment", RegistryEntry.class);
-													Enchantment enchantment = enchantmentRegistryEntry.value();
+													Enchantment enchantment = context.getArgument("enchantment", Enchantment.class);
 
 													if(TradeFinder.villager == null || TradeFinder.lecternPos == null) {
 														context.getSource().sendFeedback(Text.literal("You have not selected a librarian and lectern. Use '/tradefinder select' to select the lectern and librarian.").styled(style -> style.withColor(TextColor.fromFormatting(Formatting.RED))));
@@ -112,7 +99,6 @@ public class LibrarianTradeFinder implements ClientModInitializer {
 								)
 						)
 						.then(literal("stop").executes(context -> {
-
 							TradeFinder.stop();
 							context.getSource().sendFeedback(Text.literal("Stopped searching.").styled(style -> style.withColor(TextColor.fromFormatting(Formatting.GREEN))));
 							return 1;
