@@ -1,6 +1,7 @@
 package de.greenman999;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import de.greenman999.config.TradeFinderConfig;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -109,7 +110,13 @@ public class LibrarianTradeFinder implements ClientModInitializer {
 			TradeFinder.tick();
 		});
 
+		getConfig().load();
+
 		LOGGER.info("Librarian Trade Finder initialized.");
+	}
+
+	public static TradeFinderConfig getConfig() {
+		return TradeFinderConfig.INSTANCE;
 	}
 
 }

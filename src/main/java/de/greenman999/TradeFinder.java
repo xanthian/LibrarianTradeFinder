@@ -3,8 +3,12 @@ package de.greenman999;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.LecternBlock;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.passive.VillagerEntity;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.AxeItem;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket;
 import net.minecraft.text.Text;
 import net.minecraft.text.TextColor;
@@ -55,9 +59,8 @@ public class TradeFinder {
             case PLACE -> MinecraftClient.getInstance().inGameHud.setOverlayMessage(Text.literal("placing lectern --- attempt: " + tries).formatted(Formatting.GRAY), false);
         }
 
-        if(state == TradeState.CHECK && villager.getVillagerData().getProfession().equals(VillagerProfession.LIBRARIAN)) {
+        if((state == TradeState.CHECK || state == TradeState.WAITING_FOR_PACKET) && villager.getVillagerData().getProfession().equals(VillagerProfession.LIBRARIAN)) {
             ActionResult result = MinecraftClient.getInstance().interactionManager.interactEntity(MinecraftClient.getInstance().player, villager, Hand.MAIN_HAND);
-            System.out.println(result);
             if(result == ActionResult.SUCCESS) {
                 state = TradeState.WAITING_FOR_PACKET;
             }else {
@@ -66,6 +69,17 @@ public class TradeFinder {
             }
 
         }else if(state == TradeState.BREAK) {
+            ClientPlayerEntity player = MinecraftClient.getInstance().player;
+            PlayerInventory inventory = player.getInventory();
+            ItemStack mainHand = inventory.getMainHandStack();
+            if(mainHand.getItem() instanceof AxeItem) {
+                int remainingDurability = mainHand.getMaxDamage() - mainHand.getDamage();
+                if(remainingDurability <= 5 && LibrarianTradeFinder.getConfig().preventAxeBreaking) {
+                    stop();
+                    MinecraftClient.getInstance().inGameHud.getChatHud().addMessage(Text.literal("The searching process was stopped because your axe is about to break.").formatted(Formatting.RED));
+                    return;
+                }
+            }
             if(MinecraftClient.getInstance().world.getBlockState(lecternPos).getBlock() instanceof LecternBlock) {
                 MinecraftClient.getInstance().player.swingHand(Hand.MAIN_HAND, true);
                 MinecraftClient.getInstance().interactionManager.updateBlockBreakingProgress(lecternPos, Direction.UP);
