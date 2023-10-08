@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.1-SNAPSHOT'
+	id 'fabric-loom' version '1.4-SNAPSHOT'
 	id 'maven-publish'
 	
 }
@@ -39,9 +39,12 @@ dependencies {
 	// These are included in the Fabric API production distribution and allow you to update your mod to the latest modules at a later more convenient time.
 
 	// modImplementation "net.fabricmc.fabric-api:fabric-api-deprecated:${project.fabric_version}"
-
-	modImplementation 'dev.isxander:yet-another-config-lib:2.2.0'
-	modImplementation("com.terraformersmc:modmenu:5.0.2")
+	modImplementation("dev.isxander.yacl:yet-another-config-lib-fabric:3.2.1+1.20") {
+		exclude(group: "org.quiltmc.parsers")
+		exclude(group: "com.twelvemonkeys.common")
+		exclude(group: "com.twelvemonkeys.imageio")
+	}
+	modImplementation("com.terraformersmc:modmenu:7.2.2")
 }
 
 processResources {
